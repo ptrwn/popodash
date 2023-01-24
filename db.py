@@ -5,6 +5,7 @@ from config import Config
 from pathlib import Path
 from sql_statements import SQL_stmt
 
+from random import randint, choice
 
 def create_connection():
     """ create a database connection to a SQLite database """
@@ -42,7 +43,6 @@ def insert(conn, statement, params):
     return cur.lastrowid
 
 
-
 def main():
 
     conn = create_connection()
@@ -54,28 +54,24 @@ def main():
         create_table(conn, SQL_stmt.create_table_users_parties)
         create_table(conn, SQL_stmt.create_table_users_items)
 
+    
+    users = ['Carl', 'Judy', 'Bernard', 'Tammy', 'Kevin', 'Andrea', 'Bernard', 'Danielle', 'Ricky', 'Holly', 'Yusef', 'Joanne', 'Jerry', 'Caroline', 'Albert', 'Fiona', 'Robert', 'Laura', 'Owen', 'Marie', 'Reginald', 'Elizabeth', 'Jason', 'Jennifer', 'Ryan', 'Cynthia', 'Michael', 'Kathleen', 'Karl', 'Megan', 'Dennis', 'Katie', 'Douglas', 'Susan', 'Alexander', 'Janet', 'Conrad', 'Denise', 'Jack', 'Janet', 'Scott', 'Stacy', 'Kevin', 'Isabelle', 'Reginald', 'Camilla', 'Harry', 'Lydia', 'Clifford', 'Kathleen']
+    items = ['Guinness', 'Cola', 'Whiskey', 'Vodka', 'Wine', 'Bloody Mary']
+
 
     with conn:
 
-        user_id = insert(conn, SQL_stmt.insert_user, ('Bob',))
-        print(user_id)
-
-        party_id = insert(conn, SQL_stmt.insert_party, ('NewYear',))
-        print(party_id)
-
-        item_id = insert(conn, SQL_stmt.insert_item, ('Guinness',))
-        print(item_id)
-
-        u_p_id = insert(conn, SQL_stmt.insert_user_party, (user_id, party_id))
-        print(u_p_id)
-
-        u_i_id = insert(conn, SQL_stmt.insert_user_item, (user_id, item_id))
-        print(u_i_id)
-
-    
-
-
-    
+        for party in ['New Year', 'Friday', 'Wednesday', 'Halloween']:
+            party_id = insert(conn, SQL_stmt.insert_party, (party,))
+            
+            num_guests = randint(1, 5)
+            for _ in range(num_guests):
+                user_id = insert(conn, SQL_stmt.insert_user, (choice(users), ))
+                u_p_id = insert(conn, SQL_stmt.insert_user_party, (user_id, party_id))
+                num_items = randint(1, len(items))
+                for item in items[:num_items]:
+                    item_id = insert(conn, SQL_stmt.insert_item, (item,))
+                    u_i_id = insert(conn, SQL_stmt.insert_user_item, (user_id, item_id))
 
 
 if __name__ == '__main__':
