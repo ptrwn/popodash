@@ -69,8 +69,8 @@ def main():
                 user_id = insert(conn, SQL_stmt.insert_user, (choice(users), ))
                 u_p_id = insert(conn, SQL_stmt.insert_user_party, (user_id, party_id))
                 num_items = randint(1, len(items))
-                for item in items[:num_items]:
-                    item_id = insert(conn, SQL_stmt.insert_item, (item,))
+                for _ in range(num_items):
+                    item_id = insert(conn, SQL_stmt.insert_item, (choice(items),))
                     u_i_id = insert(conn, SQL_stmt.insert_user_item, (user_id, item_id))
 
 
