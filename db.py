@@ -6,6 +6,7 @@ from pathlib import Path
 from sql_statements import SQL_stmt
 
 from random import randint, choice
+from constants import parties, users, types_to_items, locations
 
 def create_connection():
     """ create a database connection to a SQLite database """
@@ -13,13 +14,8 @@ def create_connection():
     db_file =  Path().absolute() / Config.DB_FILE
     try:
         conn = sqlite3.connect(db_file)
-        # conn = sqlite3.connect(':memory:')
     except Error as e:
         print(e)
-    # finally:
-    #     if conn:
-    #         conn.close()
-
     return conn
 
 
@@ -43,6 +39,36 @@ def insert(conn, statement, params):
     return cur.lastrowid
 
 
+class Item():
+    def __init__(self, amount_ml, price):
+        self.group = choice(list(types_to_items.keys()))
+        drink_from_group = choice(list(types_to_items[self.group])) 
+        self.name = drink_from_group[0]
+        self.abv = drink_from_group[1]
+        self.amount_ml = amount_ml
+        self.price = price
+
+        
+
+
+class User():
+    def __init__(self, name):
+        self.name = name
+        self.age = randint(25, 50)
+
+
+class Party():
+
+    def __init__(self, name, start=None, end=None, location=None):
+        self.name = name
+        self.start = start
+        self.end = end
+        self.location = location
+    
+
+
+
+
 def main():
 
     conn = create_connection()
@@ -54,14 +80,9 @@ def main():
         create_table(conn, SQL_stmt.create_table_users_parties)
         create_table(conn, SQL_stmt.create_table_users_items)
 
-    
-    users = ['Carl', 'Judy', 'Bernard', 'Tammy', 'Kevin', 'Andrea', 'Bernard', 'Danielle', 'Ricky', 'Holly', 'Yusef', 'Joanne', 'Jerry', 'Caroline', 'Albert', 'Fiona', 'Robert', 'Laura', 'Owen', 'Marie', 'Reginald', 'Elizabeth', 'Jason', 'Jennifer', 'Ryan', 'Cynthia', 'Michael', 'Kathleen', 'Karl', 'Megan', 'Dennis', 'Katie', 'Douglas', 'Susan', 'Alexander', 'Janet', 'Conrad', 'Denise', 'Jack', 'Janet', 'Scott', 'Stacy', 'Kevin', 'Isabelle', 'Reginald', 'Camilla', 'Harry', 'Lydia', 'Clifford', 'Kathleen']
-    items = ['Guinness', 'Cola', 'Whiskey', 'Vodka', 'Wine', 'Bloody Mary']
-
-
     with conn:
 
-        for party in ['New Year', 'Friday', 'Wednesday', 'Halloween']:
+        for party in parties:
             party_id = insert(conn, SQL_stmt.insert_party, (party,))
             
             num_guests = randint(1, 5)
