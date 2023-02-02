@@ -45,6 +45,8 @@ def main():
     places = list(locations_to_kinds.keys())
     picked_places = np.random.choice(places, size=df_p.shape[0], replace=True)
     df_p['location'] = picked_places
+    df_p['id'] = df_p.index
+    df_p.id += 1
 
     df_i = pd.read_csv('drinks.csv')
 
@@ -57,12 +59,12 @@ def main():
         create_table(conn, SQL_stmt.create_table_users_parties)
         create_table(conn, SQL_stmt.create_table_users_items)
 
-        parties = df_p.party.tolist()
+        parties = df_p.name.tolist()
 
-        for party_id, party in enumerate(parties):
+        for party_id, party in enumerate(parties, start=1):
 
             num_guests = randint(1, NUMBER_OF_GUESTS)
-            party_location =  df_p.loc[df_p.party == party]['location'].item()
+            party_location =  df_p.loc[df_p.name == party]['location'].item()
             locations_drinks_kinds = list(locations_to_kinds[party_location])
             df_loc_items = df_i.loc[df_i['kind'].isin(locations_drinks_kinds)]
 

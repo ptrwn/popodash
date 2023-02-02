@@ -37,7 +37,7 @@ class SQL_stmt():
     insert_user_party = """INSERT INTO users_parties (user_id, party_id) VALUES (?, ?);"""
     insert_user_item = """INSERT INTO users_items (user_id, item_id) VALUES (?, ?);"""
 
-    select_full_data = """select u.id, u.name, i.id, i.name, p.id, p.name 
+    select_full_data = """select u.id, u.name, i.id, i.name, i.abv, i.kind, i.amount_l, i.price, p.id, p.name 
                         from user u 
                         left join users_items ui on u.id = ui.user_id 
                         left join item i on i.id = ui.item_id 
