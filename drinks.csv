@@ -1,32 +1,32 @@
-﻿drink,abv,kind,exclusive_in,vol,price
-ohota krepkoe,8.1,beer,clever,0.5,21
-guinness,4.2,beer,,0.5,10
-hoegaarden,4.9,beer,,0.5,90
-efes,3.11,beer,,0.5,50
-bomonti,4.8,beer,,0.5,50
-somersby,4.5,beer,,0.3,120
-kilkenny,4.3,beer,,0.5,90
-kindzmarauli,11.5,wine,galaktion,0.2,300
-frontera cabernet,13,wine,,0.2,200
-frontera merlot,12.5,wine,,0.2,200
-frontera chardonnay,13.5,wine,,0.2,200
-frontera sauvignon blanc,12,wine,,0.2,200
-buzbac white,12,wine,ambar,0.2,150
-buzbac red,13,wine,ambar,0.2,150
-khvanchkara,11.5,wine,galaktion,0.2,300
-folonari pinot grigio,12,wine,,0.2,150
-whiskey,39,spirit,,0.05,150
-bourbon,40,spirit,,0.05,150
-vodka,40,spirit,,0.05,150
-rum,42,spirit,,0.05,150
-cognac,40,spirit,,0.05,150
-tequila,40,spirit,,0.05,150
-gin,40,spirit,,0.05,150
-jager,35,spirit,,0.05,150
-chacha,45,spirit,galaktion,0.05,150
-bloody mary,10,cocktail,,0.25,180
-cuba libre,11,cocktail,,0.25,180
-whiskey sour,15.3,cocktail,,0.25,180
-long island ice tea,22,cocktail,,0.25,180
-old fashioned,27,cocktail,,0.25,180
-bullshitter,10,cocktail,moretenders,0.25,180
+﻿drink,abv,kind,exclusive_in
+ohota krepkoe,8.1,beer,clever
+guinness,4.2,beer,
+hoegaarden,4.9,beer,
+efes,3.11,beer,
+bomonti,4.8,beer,
+somersby,4.5,beer,
+kilkenny,4.3,beer,
+kindzmarauli,11.5,wine,galaktion
+frontera cabernet,13,wine,
+frontera merlot,12.5,wine,
+frontera chardonnay,13.5,wine,
+frontera sauvignon blanc,12,wine,
+buzbac white,12,wine,ambar
+buzbac red,13,wine,ambar
+khvanchkara,11.5,wine,galaktion
+folonari pinot grigio,12,wine,
+whiskey,39,spirit,
+bourbon,40,spirit,
+vodka,40,spirit,
+rum,42,spirit,
+cognac,40,spirit,
+tequila,40,spirit,
+gin,40,spirit,
+jager,35,spirit,
+chacha,45,spirit,galaktion
+bloody mary,10,cocktail,
+cuba libre,11,cocktail,
+whiskey sour,15.3,cocktail,
+long island ice tea,22,cocktail,
+old fashioned,27,cocktail,
+bullshitter,10,cocktail,moretenders
