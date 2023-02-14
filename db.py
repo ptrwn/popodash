@@ -43,12 +43,32 @@ def df_to_sql(conn, df, table_name):
     df.to_sql(table_name, con=conn, if_exists='replace', index_label='id')
 
 
+def item_loc(conn, drink, location, vol, price):
+    #TODO move sqls to the class
+    cur = conn.cursor()
+    cur.execute(f"select id from location where name = '{location}';")
+    loc_id = cur.fetchone()[0]
+    cur.execute(f"select id from item where drink = '{drink}';")
+    item_id = cur.fetchone()[0]
+    cur.execute("INSERT INTO item_location (item_id, location_id, volume, price) VALUES (?, ?, ?, ?);", (item_id, loc_id, vol, price))
+    conn.commit()
+
+
+
+
 def main():
 
     df_p = pd.read_csv('parties_dates.csv', parse_dates=['start_dt', 'end_dt'])
     df_u = pd.DataFrame({'name': users})
     df_i = pd.read_csv('drinks.csv', usecols=['drink', 'abv', 'kind'])
     df_l = pd.DataFrame({'name': list(locations_to_kinds.keys())})
+
+    df = pd.read_csv('drinks_vol_price_excl.csv')
+    df_excl = df.loc[df.exclusive_in.notna()]
+    df_e_nokind = df_excl.loc[:,~df_excl.columns.isin(["kind", "abv"])]
+
+    for df in [df_p, df_u, df_i, df_l]:
+        df.index = df.index + 1
 
     conn = create_connection()
 
@@ -58,10 +78,16 @@ def main():
         for df, table_name in zip((df_p, df_u, df_i, df_l), ('party', 'user', 'item', 'location')):
             withconn(df, table_name)
 
+        create_table(conn, SQL_stmt.create_table_party_user_itemloc)
+        create_table(conn, SQL_stmt.create_table_item_location)
 
-        # df_p.to_sql('party', con=conn, if_exists='replace')
-        # create_table(conn, SQL_stmt.create_table_user)
-        # create_table(conn, SQL_stmt.create_table_item)
+        fooconn = partial(item_loc, conn)
+        df_e_nokind.apply(lambda x: fooconn(x['drink'], x['exclusive_in'], x['vol'], x['price']), axis=1)
+
+
+
+
+
         # create_table(conn, SQL_stmt.create_table_users_parties)
         # create_table(conn, SQL_stmt.create_table_users_items)
 

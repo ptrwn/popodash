@@ -32,6 +32,7 @@ class SQL_stmt():
                                         party_id INTEGER NOT NULL,
                                         user_id INTEGER NOT NULL,
                                         itemloc_id INTEGER NOT NULL,
+                                        order_dt text,
                                         FOREIGN KEY(party_id) REFERENCES party(id),
                                         FOREIGN KEY(user_id) REFERENCES user(id),
                                         FOREIGN KEY(itemloc_id) REFERENCES item_location(id)
@@ -44,7 +45,6 @@ class SQL_stmt():
                                         location_id INTEGER NOT NULL,
                                         volume real NOT NULL,
                                         price real NOT NULL,
-                                        order_dt text,
                                         FOREIGN KEY(item_id) REFERENCES item(id),
                                         FOREIGN KEY(location_id) REFERENCES location(id)
                                     ); """
