@@ -1,6 +1,5 @@
 import sqlite3
 import pandas as pd
-import numpy as np
 from sqlite3 import Error
 
 from config import Config
@@ -69,16 +68,16 @@ def insert_item_loc(conn, drink, location, vol, price):
 
 def main():
 
-    df_p = pd.read_csv('parties_dates.csv', parse_dates=['start_dt', 'end_dt'])
+    df_p = pd.read_csv('data/parties_dates.csv', parse_dates=['start_dt', 'end_dt'])
     df_u = pd.DataFrame({'name': users})
-    df_i = pd.read_csv('drinks.csv', usecols=['drink', 'abv', 'kind'])
+    df_i = pd.read_csv('data/drinks.csv', usecols=['drink', 'abv', 'kind'])
     df_l = pd.DataFrame({'name': [*locations_to_kinds]})
 
     # moving pd dataframe index from 0 to 1 to make sqlite index start from 1 too
     for df in [df_p, df_u, df_i, df_l]:
         df.index = df.index + 1
 
-    df = pd.read_csv('drinks_vol_price_excl.csv')
+    df = pd.read_csv('data/drinks_vol_price_excl.csv')
     df_excl = df.loc[df.exclusive_in.notna()]
 
     # TODO: add price fluctuations -- set coefficients for 'cheap'
