@@ -12,6 +12,21 @@ from constants import users, locations_to_kinds, NUMBER_OF_GUESTS
 
 from functools import partial
 
+def revert(d):
+
+    '''Reverts a dictionary to 
+        {value1: [key1, key2, ...],
+        value2: [key1, key3, ...]}'''
+
+    rev = {}
+    for k in [*d]:
+        for v in d[k]:
+            if v not in [*rev]:
+                rev[v] = [k]
+            else:
+                rev[v].append(k)
+
+    return rev
 
 
 def create_connection():
@@ -43,32 +58,38 @@ def df_to_sql(conn, df, table_name):
     df.to_sql(table_name, con=conn, if_exists='replace', index_label='id')
 
 
-def item_loc(conn, drink, location, vol, price):
-    #TODO move sqls to the class
+def insert_item_loc(conn, drink, location, vol, price):
     cur = conn.cursor()
     cur.execute(f"select id from location where name = '{location}';")
     loc_id = cur.fetchone()[0]
     cur.execute(f"select id from item where drink = '{drink}';")
     item_id = cur.fetchone()[0]
-    cur.execute("INSERT INTO item_location (item_id, location_id, volume, price) VALUES (?, ?, ?, ?);", (item_id, loc_id, vol, price))
+    cur.execute(SQL_stmt.insert_item_location, (item_id, loc_id, vol, price))
     conn.commit()
-
-
-
 
 def main():
 
     df_p = pd.read_csv('parties_dates.csv', parse_dates=['start_dt', 'end_dt'])
     df_u = pd.DataFrame({'name': users})
     df_i = pd.read_csv('drinks.csv', usecols=['drink', 'abv', 'kind'])
-    df_l = pd.DataFrame({'name': list(locations_to_kinds.keys())})
+    df_l = pd.DataFrame({'name': [*locations_to_kinds]})
+
+    # moving pd dataframe index from 0 to 1 to make sqlite index start from 1 too
+    for df in [df_p, df_u, df_i, df_l]:
+        df.index = df.index + 1
 
     df = pd.read_csv('drinks_vol_price_excl.csv')
     df_excl = df.loc[df.exclusive_in.notna()]
-    df_e_nokind = df_excl.loc[:,~df_excl.columns.isin(["kind", "abv"])]
 
-    for df in [df_p, df_u, df_i, df_l]:
-        df.index = df.index + 1
+    # TODO: add price fluctuations -- set coefficients for 'cheap'
+    # and 'expensive' places.
+    df_any = df.loc[~df.exclusive_in.notna()]
+    kinds_to_locations = revert(locations_to_kinds)
+    df_any['location'] = df_any.kind.apply(lambda x: choice(kinds_to_locations[x]))
+    df_any1 = pd.DataFrame.copy(df_any)
+    df_any1['location'] = df_any.kind.apply(lambda x: choice(kinds_to_locations[x]))
+    df_any = pd.concat([df_any, df_any1])
+    df_any = df_any.drop_duplicates()
 
     conn = create_connection()
 
@@ -81,9 +102,10 @@ def main():
         create_table(conn, SQL_stmt.create_table_party_user_itemloc)
         create_table(conn, SQL_stmt.create_table_item_location)
 
-        fooconn = partial(item_loc, conn)
-        df_e_nokind.apply(lambda x: fooconn(x['drink'], x['exclusive_in'], x['vol'], x['price']), axis=1)
-
+        itemloc_conn = partial(insert_item_loc, conn)
+        df_excl.apply(lambda x: itemloc_conn(x['drink'], x['exclusive_in'], x['vol'], x['price']), axis=1)
+        df_any.apply(lambda x: itemloc_conn(x['drink'], x['location'], x['vol'], x['price']), axis=1)
+        
 
 
 

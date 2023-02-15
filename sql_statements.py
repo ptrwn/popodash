@@ -49,6 +49,9 @@ class SQL_stmt():
                                         FOREIGN KEY(location_id) REFERENCES location(id)
                                     ); """
     
+    insert_item_location = """INSERT INTO item_location (item_id, location_id, volume, price) VALUES (?, ?, ?, ?);"""
+
+
 
     # insert_user = """INSERT INTO user (name) VALUES (?);"""
     # insert_party = """INSERT INTO party (name) VALUES (?);"""
@@ -64,3 +67,33 @@ class SQL_stmt():
     #                     left join users_parties up on u.id = up.user_id 
     #                     left join party p on up.party_id = p.id;"""
 
+
+
+# sqlite> select l.name, i.drink from location l left join item_location il on l.id =
+#  il.location_id left join item i on i.id = il.item_id;
+# name|drink
+# joyce|
+# amster|
+# ambar|buzbac white
+# ambar|buzbac red
+# touchdown|
+# moretenders|bullshitter
+# clever|ohota krepkoe
+# galaktion|kindzmarauli
+# galaktion|khvanchkara
+# galaktion|chacha
+# sqlite>
+
+
+# sqlite> select l.name, i.drink from location l inner join item_location il on l.id
+# = il.location_id inner join item i on i.id = il.item_id;
+# name|drink
+# clever|ohota krepkoe
+# galaktion|kindzmarauli
+# ambar|buzbac white
+# ambar|buzbac red
+# galaktion|khvanchkara
+# galaktion|chacha
+# moretenders|bullshitter
+
+# sqlite> select l.name, i.drink, il.volume, il. price from location l inner join item_location il on l.id = il.location_id inner join item i on i.id = il.item_id;  
