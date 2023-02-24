@@ -1,4 +1,6 @@
-NUMBER_OF_GUESTS = 5
+MAX_USERS_PER_PARTY = 8
+MAX_LOC_PER_PARTY = 5
+MAX_ITEMS_USER_PARTY = 11
 
 users = ("Carl", "Judy", "Bernard", "Tammy", "Kevin", "Andrea", "Bernard", "Danielle", "Ricky", "Holly", "Yusef", "Joanne", "Jerry", "Caroline", "Albert", "Fiona", "Robert", "Laura", "Owen", "Marie", "Reginald", "Elizabeth", "Jason", "Jennifer", "Ryan", "Cynthia", "Michael", "Kathleen", "Karl", "Megan", "Dennis", "Katie", "Douglas", "Susan", "Alexander", "Janet", "Conrad", "Denise", "Jack", "Janet", "Scott", "Stacy", "Kevin", "Isabelle", "Reginald", "Camilla", "Harry", "Lydia", "Clifford", "Kathleen")
 

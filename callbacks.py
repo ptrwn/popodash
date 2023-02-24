@@ -3,7 +3,7 @@ import plotly.express as px
 import pandas as pd
 
 import sqlite3
-from sql_statements import SQL_stmt
+from db.sql_statements import SQL_stmt
 
 from app import app
 

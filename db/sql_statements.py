@@ -51,6 +51,8 @@ class SQL_stmt():
     
     insert_item_location = """INSERT INTO item_location (item_id, location_id, volume, price) VALUES (?, ?, ?, ?);"""
 
+    insert_party_user_itemloc = """INSERT INTO party_user_itemloc (party_id, user_id, itemloc_id, order_dt) VALUES (?, ?, ?, ?);"""
+
 
 
     # insert_user = """INSERT INTO user (name) VALUES (?);"""

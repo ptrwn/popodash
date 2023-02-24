@@ -6,10 +6,14 @@ from config import Config
 from pathlib import Path
 from sql_statements import SQL_stmt
 
-from random import randint, choice
-from constants import users, locations_to_kinds, NUMBER_OF_GUESTS
-
+from random import randint, choice, choices
+from constants import users, locations_to_kinds, MAX_USERS_PER_PARTY, MAX_LOC_PER_PARTY, MAX_ITEMS_USER_PARTY
 from functools import partial
+
+from faker import Faker
+fake = Faker()
+
+
 
 def revert(d):
 
@@ -66,6 +70,17 @@ def insert_item_loc(conn, drink, location, vol, price):
     cur.execute(SQL_stmt.insert_item_location, (item_id, loc_id, vol, price))
     conn.commit()
 
+
+def arger(loc_ids):
+    return ', '.join([str(_) for _ in loc_ids])
+
+
+def insert_party_user_item_loc(conn, party_id, user_id, itemloc_id, order_dt):
+    cur = conn.cursor()
+    cur.execute(SQL_stmt.insert_party_user_itemloc, (party_id, user_id, itemloc_id, order_dt))
+    conn.commit()
+
+
 def main():
 
     df_p = pd.read_csv('data/parties_dates.csv', parse_dates=['start_dt', 'end_dt'])
@@ -102,40 +117,26 @@ def main():
         create_table(conn, SQL_stmt.create_table_item_location)
 
         itemloc_conn = partial(insert_item_loc, conn)
+        party_user_conn = partial(insert_party_user_item_loc, conn)
         df_excl.apply(lambda x: itemloc_conn(x['drink'], x['exclusive_in'], x['vol'], x['price']), axis=1)
         df_any.apply(lambda x: itemloc_conn(x['drink'], x['location'], x['vol'], x['price']), axis=1)
-        
 
+        for party in df_p.itertuples():
+            # the fewer places, the more probable
+            how_many_locations = choices(list(range(1,MAX_LOC_PER_PARTY)), weights = list(range(MAX_LOC_PER_PARTY,1, -1)))[0]
+            # the more users, the more probable
+            how_many_users = choices(list(range(1, MAX_USERS_PER_PARTY)), weights = list(range(1, MAX_USERS_PER_PARTY)))[0]
 
+            loc_ids = df_l.sample(how_many_locations).index.to_list()
+            user_ids = df_u.sample(how_many_users).index.to_list()
 
+            item_loc = pd.read_sql_query(f"select id from item_location where location_id in ({arger(loc_ids)});", conn)
+            item_loc_user_dt = item_loc.sample(randint(2, min(MAX_ITEMS_USER_PARTY, item_loc.shape[0])))
+            item_loc_user_dt['user_id'] = choices(user_ids, k=item_loc_user_dt.shape[0])
+            rantimes = [fake.date_time_between(start_date=party.start_dt, end_date=party.end_dt, ) for _ in range(item_loc_user_dt.shape[0])]
+            item_loc_user_dt['order_dt'] = pd.Series(rantimes).dt.strftime('%Y-%m-%d %H:%M:%S')
 
-        # create_table(conn, SQL_stmt.create_table_users_parties)
-        # create_table(conn, SQL_stmt.create_table_users_items)
-
-        # parties = df_p.name.tolist()
-
-        # for party_id, party in enumerate(parties, start=1):
-
-        #     num_guests = randint(1, NUMBER_OF_GUESTS)
-        #     party_location =  df_p.loc[df_p.name == party]['location'].item()
-        #     locations_drinks_kinds = list(locations_to_kinds[party_location])
-        #     df_loc_items = df_i.loc[df_i['kind'].isin(locations_drinks_kinds)]
-
-        #     #TODO: Add processing for exclusive_in
-        #     df_loc_items = df_loc_items.loc[:, df_loc_items.columns != "exclusive_in"]
-
-        #     for _ in range(num_guests):
-        #         # TODO add user age
-        #         user_id = insert(conn, SQL_stmt.insert_user, (choice(users), ))
-        #         u_p_id = insert(conn, SQL_stmt.insert_user_party, (user_id, party_id))
-        #         num_items = randint(1, max(2, df_loc_items.shape[0]))
-
-        #         for _ in range(num_items):
-        #             item = df_loc_items.sample(1).to_dict('tight')['data'][0]
-        #             item = tuple(item)
-        #             item_id = insert(conn, SQL_stmt.insert_item, item)
-        #             u_i_id = insert(conn, SQL_stmt.insert_user_item, (user_id, item_id))
-
+            item_loc_user_dt.apply(lambda x: party_user_conn(party.Index, x['user_id'], x['id'], x['order_dt']), axis=1)
 
 
 if __name__ == '__main__':
