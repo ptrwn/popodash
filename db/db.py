@@ -61,11 +61,11 @@ def df_to_sql(conn, df, table_name):
     df.to_sql(table_name, con=conn, if_exists='replace', index_label='id')
 
 
-def insert_item_loc(conn, drink, location, vol, price):
+def insert_item_loc(conn, name, location, vol, price):
     cur = conn.cursor()
     cur.execute(f"select id from location where name = '{location}';")
     loc_id = cur.fetchone()[0]
-    cur.execute(f"select id from item where drink = '{drink}';")
+    cur.execute(f"select id from item where name = '{name}';")
     item_id = cur.fetchone()[0]
     cur.execute(SQL_stmt.insert_item_location, (item_id, loc_id, vol, price))
     conn.commit()
@@ -85,7 +85,7 @@ def main():
 
     df_p = pd.read_csv('data/parties_dates.csv', parse_dates=['start_dt', 'end_dt'])
     df_u = pd.DataFrame({'name': users})
-    df_i = pd.read_csv('data/drinks.csv', usecols=['drink', 'abv', 'kind'])
+    df_i = pd.read_csv('data/drinks.csv', usecols=['name', 'abv', 'kind'])
     df_l = pd.DataFrame({'name': [*locations_to_kinds]})
 
     # moving pd dataframe index from 0 to 1 to make sqlite index start from 1 too
@@ -118,8 +118,8 @@ def main():
 
         itemloc_conn = partial(insert_item_loc, conn)
         party_user_conn = partial(insert_party_user_item_loc, conn)
-        df_excl.apply(lambda x: itemloc_conn(x['drink'], x['exclusive_in'], x['vol'], x['price']), axis=1)
-        df_any.apply(lambda x: itemloc_conn(x['drink'], x['location'], x['vol'], x['price']), axis=1)
+        df_excl.apply(lambda x: itemloc_conn(x['name'], x['exclusive_in'], x['vol'], x['price']), axis=1)
+        df_any.apply(lambda x: itemloc_conn(x['name'], x['location'], x['vol'], x['price']), axis=1)
 
         for party in df_p.itertuples():
             # the fewer places, the more probable
@@ -134,8 +134,7 @@ def main():
             item_loc_user_dt = item_loc.sample(randint(2, min(MAX_ITEMS_USER_PARTY, item_loc.shape[0])))
             item_loc_user_dt['user_id'] = choices(user_ids, k=item_loc_user_dt.shape[0])
             rantimes = [fake.date_time_between(start_date=party.start_dt, end_date=party.end_dt, ) for _ in range(item_loc_user_dt.shape[0])]
-            item_loc_user_dt['order_dt'] = pd.Series(rantimes).dt.strftime('%Y-%m-%d %H:%M:%S')
-
+            item_loc_user_dt['order_dt'] = list(pd.Series(rantimes).dt.strftime('%Y-%m-%d %H:%M:%S'))
             item_loc_user_dt.apply(lambda x: party_user_conn(party.Index, x['user_id'], x['id'], x['order_dt']), axis=1)
 
 

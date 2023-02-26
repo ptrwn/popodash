@@ -1,6 +1,7 @@
 from dash import Input, Output
 import plotly.express as px
 import pandas as pd
+import datetime, time
 
 import sqlite3
 from db.sql_statements import SQL_stmt
@@ -8,57 +9,58 @@ from db.sql_statements import SQL_stmt
 from app import app
 
 conn = sqlite3.connect('popo.db') 
-sql_query = pd.read_sql_query (SQL_stmt.select_full_data, conn) 
+df = pd.read_sql(SQL_stmt.select_whole_data, conn, parse_dates=['start_dt',	'end_dt'])
 
+# TODO: DRY violation -- put them into a func,
+# maybe some class with service funcs? 
 
-def get_lgh_per_party(df, party):
+df_u = df[['user_name', 'user_id']].drop_duplicates()
+df_u = df_u.rename(columns={'user_id': 'value', 'user_name': 'label'})
+du = df_u.to_dict('records')
 
-    df_p = df.loc[df.party_name == party]
-    u_count = len(df_p.user_name.unique().tolist())
-    df_p['lg'] = df_p.item_abv * df_p.item_amount
-    party_duration = df_p.party_end - df_p.party_start
-    td = party_duration.tolist()[0]
-    hours = td.seconds / 3600
-    lgh = sum(df_p.lg) / (hours * u_count)
-    return lgh
+df_p = df[['party_name', 'party_id']].drop_duplicates()
+df_p = df_p.rename(columns={'party_id': 'value', 'party_name': 'label'})
+dp = df_p.to_dict('records')
 
+dates = df.start_dt.sort_values().unique()
+dates = df.start_dt.sort_values().dt.strftime('%Y-%m-%d %H:%M:%S')
+dates = dates.unique().tolist()
 
-def get_df(sql_query):
-    df = pd.DataFrame(sql_query)
-    df.set_axis(['user_id', 'user_name', 'item_id', 'item_name', 'item_abv', 'item_kind', 'item_amount', 'item_price', 'party_id', 'party_name', 'party_location', 'party_start', 'party_end'], axis=1, inplace=True)
-    df['party_start'] = pd.to_datetime(df['party_start'])
-    df['party_end'] = pd.to_datetime(df['party_end'])
-    return df
-
-
-df = get_df(sql_query)
-parties = df.party_name.unique().tolist()
-
-
-@app.callback(
-    Output('users-at-party', 'figure'),
-    Input('party-dropdown', 'value'))
-def update_figure_barchart(selected_party):
-    df_party = df.loc[df.party_name == selected_party]
-    df_chart = df_party[['user_name', 'item_name']]
-    df_chart = df_chart.groupby(['user_name', 'item_name']).size().reset_index().rename(columns={0: 'count'})
-
-    fig = px.bar(df_chart, x="user_name", y="count", color="item_name", barmode="group")
-
-    fig.update_layout(transition_duration=500)
-
-    return fig
+# int is required here to mitigate the bug that shows labels 
+# only if the keys are int or float
+# https://community.plotly.com/t/range-slider-labels-not-showing/6605/2
+times = {int(time.mktime(datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S').timetuple())): s for s in dates}
 
 
 @app.callback(
     Output('scatter-parties', 'figure'),
-    Input('average-dropdown', 'value'))
-def updated_figure_scatter(average):
+    Input('parties-dropdown', 'value'),
+    Input('users-dropdown', 'value'),
+    Input('dates-range', 'value') 
+    )
+def updated_figure_scatter(parties, users, dates):
+
+    
+    print(parties)
+    print(users)
+    print(dates)
+
+    df_chart = df.loc[df['user_id'].isin(users)]
+    df_chart = df_chart.loc[df['party_id'].isin(parties)]
+    df_chart['start_utime'] = df_chart['start_dt'].apply(lambda x: int(time.mktime(x.timetuple())))
+    df_chart = df_chart.loc[df['start_utime']>= dates[0] &  df['start_utime']<= dates[1]]
+
+        
+
+    # если никто не выбран, то выбраны все сразу
+    # if users is None 
+    # if parties is None
+
 
     modes = [df.loc[df.party_name == party, 'item_price'].mode()[0] for party in parties]
     medians = [df.loc[df.party_name == party, 'item_price'].median() for party in parties]
     means = [df.loc[df.party_name == party, 'item_price'].mean() for party in parties]
-    lghs = [get_lgh_per_party(df, party) for party in parties]
+    #lghs = [get_lgh_per_party(df, party) for party in parties]
     num_users = [len(df.loc[df.party_name == party, 'user_name'].unique().tolist()) for party in parties]
     mode_drink = [df.loc[df.party_name == party, 'item_kind'].mode()[0] for party in parties]
     name = [df.loc[df.party_name == party, 'party_name'].tolist()[0] for party in parties]
@@ -68,7 +70,7 @@ def updated_figure_scatter(average):
         'price_mode': modes,
         'price_median': medians,
         'price_mean': means, 
-        'productivity': lghs, 
+        #'productivity': lghs, 
         'num_users': num_users,
         'most_frequent_drink': mode_drink,
         'name': name
@@ -76,7 +78,7 @@ def updated_figure_scatter(average):
 
 
 
-    fig = px.scatter(summary_df, x="productivity", y=average,
+    fig = px.scatter(summary_df, x="modes", y=average,
                  size="num_users", color="most_frequent_drink", hover_name="name",
                  log_x=False, size_max=60)
     
@@ -113,3 +115,30 @@ def updated_figure_scatter(average):
 #                      type='linear' if yaxis_type == 'Linear' else 'log')
 
 #     return fig
+
+
+# @app.callback(
+#     Output('users-at-party', 'figure'),
+#     Input('party-dropdown', 'value'))
+# def update_figure_barchart(selected_party):
+#     df_party = df.loc[df.party_name == selected_party]
+#     df_chart = df_party[['user_name', 'item_name']]
+#     df_chart = df_chart.groupby(['user_name', 'item_name']).size().reset_index().rename(columns={0: 'count'})
+
+#     fig = px.bar(df_chart, x="user_name", y="count", color="item_name", barmode="group")
+
+#     fig.update_layout(transition_duration=500)
+
+#     return fig
+
+
+# def get_lgh_per_party(df, party):
+
+#     df_p = df.loc[df.party_name == party]
+#     u_count = len(df_p.user_name.unique().tolist())
+#     df_p['lg'] = df_p.item_abv * df_p.item_amount
+#     party_duration = df_p.party_end - df_p.party_start
+#     td = party_duration.tolist()[0]
+#     hours = td.seconds / 3600
+#     lgh = sum(df_p.lg) / (hours * u_count)
+#     return lgh

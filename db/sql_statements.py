@@ -53,49 +53,28 @@ class SQL_stmt():
 
     insert_party_user_itemloc = """INSERT INTO party_user_itemloc (party_id, user_id, itemloc_id, order_dt) VALUES (?, ?, ?, ?);"""
 
+    select_whole_data = """select u.name as user_name, u.id as user_id, 
+                                i.name as item_name, i.id as item_id, i.abv, i.kind, 
+                                p.name as party_name, p.id as party_id, p.start_dt, p.end_dt, 
+                                l.id as location_id, l.name as location_name,
+                                il.volume, il.price, puil.order_dt 
+                            from user u 
+                            inner join party_user_itemloc puil on u.id = puil.user_id 
+                            left join item_location il on il.id = puil.itemloc_id  
+                            left join party p on p.id = puil.party_id  
+                            left join location l on l.id = il.location_id
+                            left join item i on i.id = il.item_id;"""
 
 
-    # insert_user = """INSERT INTO user (name) VALUES (?);"""
-    # insert_party = """INSERT INTO party (name) VALUES (?);"""
-    # insert_item = """INSERT INTO item (name, abv, kind, amount_l, price) VALUES (?, ?, ?, ?, ?);"""
-
-    # insert_user_party = """INSERT INTO users_parties (user_id, party_id) VALUES (?, ?);"""
-    # insert_user_item = """INSERT INTO users_items (user_id, item_id) VALUES (?, ?);"""
-
-    # select_full_data = """select u.id, u.name, i.id, i.name, i.abv, i.kind, i.amount_l, i.price, p.id, p.name, p.location, p.start, p.end 
-    #                     from user u 
-    #                     left join users_items ui on u.id = ui.user_id 
-    #                     left join item i on i.id = ui.item_id 
-    #                     left join users_parties up on u.id = up.user_id 
-    #                     left join party p on up.party_id = p.id;"""
-
-
-
-# sqlite> select l.name, i.drink from location l left join item_location il on l.id =
-#  il.location_id left join item i on i.id = il.item_id;
-# name|drink
-# joyce|
-# amster|
-# ambar|buzbac white
-# ambar|buzbac red
-# touchdown|
-# moretenders|bullshitter
-# clever|ohota krepkoe
-# galaktion|kindzmarauli
-# galaktion|khvanchkara
-# galaktion|chacha
-# sqlite>
-
-
-# sqlite> select l.name, i.drink from location l inner join item_location il on l.id
-# = il.location_id inner join item i on i.id = il.item_id;
-# name|drink
-# clever|ohota krepkoe
-# galaktion|kindzmarauli
-# ambar|buzbac white
-# ambar|buzbac red
-# galaktion|khvanchkara
-# galaktion|chacha
-# moretenders|bullshitter
-
-# sqlite> select l.name, i.drink, il.volume, il. price from location l inner join item_location il on l.id = il.location_id inner join item i on i.id = il.item_id;  
+    select_whole_data_inners = '''select u.name as user_name, u.id as user_id, 
+                                i.name as item_name, i.id as item_id, i.abv, i.kind, 
+                                p.name as party_name, p.id as party_id, p.start_dt, p.end_dt, 
+                                l.id as location_id, l.name as location_name,
+                                il.volume, il.price, puil.order_dt 
+                    from user u 
+                    inner join party_user_itemloc puil on u.id = puil.user_id 
+                    inner join item_location il on il.id = puil.itemloc_id  
+                    inner join party p on p.id = puil.party_id  
+                    inner join location l on l.id = il.location_id
+                    inner join item i on i.id = il.item_id;
+    '''
