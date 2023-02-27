@@ -10,6 +10,8 @@ from app import app
 
 conn = sqlite3.connect('popo.db') 
 df = pd.read_sql(SQL_stmt.select_whole_data, conn, parse_dates=['start_dt',	'end_dt'])
+df['start_utime'] = df['start_dt'].apply(lambda x: int(time.mktime(x.timetuple())))
+
 
 # TODO: DRY violation -- put them into a func,
 # maybe some class with service funcs? 
@@ -29,6 +31,7 @@ dates = dates.unique().tolist()
 # int is required here to mitigate the bug that shows labels 
 # only if the keys are int or float
 # https://community.plotly.com/t/range-slider-labels-not-showing/6605/2
+# TODO: reuse start_utime column instead of calculating unix ts twice
 times = {int(time.mktime(datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S').timetuple())): s for s in dates}
 
 
@@ -45,42 +48,17 @@ def updated_figure_scatter(parties, users, dates):
     print(users)
     print(dates)
 
-    df_chart = df.loc[df['user_id'].isin(users)]
-    df_chart = df_chart.loc[df['party_id'].isin(parties)]
-    df_chart['start_utime'] = df_chart['start_dt'].apply(lambda x: int(time.mktime(x.timetuple())))
-    df_chart = df_chart.loc[df['start_utime']>= dates[0] &  df['start_utime']<= dates[1]]
-
-        
-
-    # если никто не выбран, то выбраны все сразу
-    # if users is None 
-    # if parties is None
+    fil_users_parties = df['user_id'].isin(users) & df['party_id'].isin(parties)
+    fil_dates_range = (dates[0] <= df['start_utime']) & (df['start_utime'] <= dates[1])
+    parties_filtered = df.loc[fil_users_parties & fil_dates_range]['party_id'].unique().tolist()
+    fil_parties = df['party_id'].isin(parties_filtered)
+    df_chart = df.loc[fil_parties]
+    df_chart = df_chart.groupby(['party_id', 'party_name','start_utime', 'start_dt'])['price'].sum().reset_index()
+    df_chart = df_chart.sort_values(by=['start_utime'])
 
 
-    modes = [df.loc[df.party_name == party, 'item_price'].mode()[0] for party in parties]
-    medians = [df.loc[df.party_name == party, 'item_price'].median() for party in parties]
-    means = [df.loc[df.party_name == party, 'item_price'].mean() for party in parties]
-    #lghs = [get_lgh_per_party(df, party) for party in parties]
-    num_users = [len(df.loc[df.party_name == party, 'user_name'].unique().tolist()) for party in parties]
-    mode_drink = [df.loc[df.party_name == party, 'item_kind'].mode()[0] for party in parties]
-    name = [df.loc[df.party_name == party, 'party_name'].tolist()[0] for party in parties]
-
-
-    summary_df = pd.DataFrame({
-        'price_mode': modes,
-        'price_median': medians,
-        'price_mean': means, 
-        #'productivity': lghs, 
-        'num_users': num_users,
-        'most_frequent_drink': mode_drink,
-        'name': name
-    })
-
-
-
-    fig = px.scatter(summary_df, x="modes", y=average,
-                 size="num_users", color="most_frequent_drink", hover_name="name",
-                 log_x=False, size_max=60)
+    #  size="num_users", color="most_frequent_drink", hover_name="name",
+    fig = px.scatter(df_chart, x="start_dt", y='price', hover_name="party_name", log_x=False, size_max=10)
     
 
     fig.update_layout(transition_duration=500)
