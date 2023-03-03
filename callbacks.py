@@ -18,31 +18,38 @@ df['start_utime'] = df['start_dt'].apply(lambda x: int(time.mktime(x.timetuple()
 pp = df.party_id.unique().tolist()
 uu = df.user_id.unique().tolist()
 
+dates = df.start_dt.sort_values().dt.strftime('%Y-%m-%d %H:%M:%S')
+dates = dates.unique().tolist()
+
+# int is required here to mitigate the bug that shows labels 
+# only if the keys are int or float
+# https://community.plotly.com/t/range-slider-labels-not-showing/6605/2
+# TODO: reuse start_utime column instead of calculating unix ts twice
+times = {int(time.mktime(datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S').timetuple())): s for s in dates}
+
+
 @app.callback(
     Output('scatter-parties', 'figure'),
     Output('parties-dropdown', 'options'),
     Output('parties-dropdown', 'value'),
     Output('users-dropdown', 'options'),
     Output('users-dropdown', 'value'),
+    #Output('dates-range', 'options'),
+    Output('dates-range', 'value'),
     Input('parties-dropdown', 'value'),
     Input('users-dropdown', 'value'),
-    # Input('dates-range', 'value') 
+    Input('dates-range', 'value') 
     )
-def update_figure_scatter(parties, users):
+def update_figure_scatter(parties, users, dates):
 
     caller = ctx.triggered_id
-    print(caller)
 
-    
     caller_to_filters = {
         'users-dropdown': df['user_id'].isin(users),
         'parties-dropdown': df['party_id'].isin(parties),
+        'dates-range': (dates[0] <= df['start_utime']) & (df['start_utime'] <= dates[1]), 
         None: df['user_id'].isin(users) & df['party_id'].isin(parties)
     }
-
-    
-    # fil_dates_range = (dates[0] <= df['start_utime']) & (df['start_utime'] <= dates[1])
-    # parties_filtered = df.loc[fil_users_parties & fil_dates_range]['party_id'].unique().tolist()
 
     df_chart = df.loc[caller_to_filters[caller]]
 
@@ -57,22 +64,20 @@ def update_figure_scatter(parties, users):
     df_p = df_p.rename(columns={'party_id': 'value', 'party_name': 'label'})
     dp = df_p.to_dict('records')
 
-
     uu = df[['user_name', 'user_id']].drop_duplicates().rename(columns={'user_id': 'value', 'user_name': 'label'})
     uu = uu.to_dict('records')
 
     pp = df[['party_name', 'party_id']].drop_duplicates().rename(columns={'party_id': 'value', 'party_name': 'label'})
     pp = pp.to_dict('records')
 
-    # dates = df.start_dt.sort_values().unique()
-    # dates = df.start_dt.sort_values().dt.strftime('%Y-%m-%d %H:%M:%S')
-    # dates = dates.unique().tolist()
+    dates = df_chart.start_dt.sort_values().dt.strftime('%Y-%m-%d %H:%M:%S')
+    dates = dates.unique().tolist()
 
     # int is required here to mitigate the bug that shows labels 
     # only if the keys are int or float
     # https://community.plotly.com/t/range-slider-labels-not-showing/6605/2
     # TODO: reuse start_utime column instead of calculating unix ts twice
-    # times = {int(time.mktime(datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S').timetuple())): s for s in dates}
+    times = {int(time.mktime(datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S').timetuple())): s for s in dates}
 
     df_chart = df_chart.groupby(['party_id', 'party_name','start_utime', 'start_dt'])['price'].sum().reset_index()
     df_chart = df_chart.sort_values(by=['start_utime'])
@@ -80,5 +85,4 @@ def update_figure_scatter(parties, users):
     fig = px.scatter(df_chart, x="start_dt", y='price', hover_name="party_name", log_x=False, size_max=10)
     fig.update_layout(transition_duration=500)
 
-    return fig, pp, [x['value'] for x in dp], uu, [x['value'] for x in du]
-
+    return fig, pp, [x['value'] for x in dp], uu, [x['value'] for x in du], [list(times.keys())[0], list(times.keys())[-1]]
