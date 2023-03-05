@@ -2,6 +2,22 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 from callbacks import uu, pp, times
 
+tab_all_content =  dbc.Card(
+    dbc.CardBody(className="mt-3", children=[
+        dbc.Row(id='bottom-charts', children=[    
+            dbc.Col(id='generic-view-col', width=5, children=[dbc.Card([dcc.Graph(id='scatter-parties'),]),]),
+            dbc.Col(id='details-view-col', width=7, children=[dbc.Card([dcc.Graph(id='users-at-party'),]),] ),
+            ]),
+    ]),
+)
+
+tab_per_user_content =  dbc.Card(
+    dbc.CardBody(className="mt-3", children=[
+        html.P("This is tab 1!", className="card-text"),
+        dbc.Button("Click here", color="success"),
+    ]), 
+)
+
 layout =  dbc.Container(fluid=False, children=[
 
     dbc.Row(id='top-name', children=[
@@ -9,7 +25,6 @@ layout =  dbc.Container(fluid=False, children=[
             html.H1("popodash"),
             html.Hr(),
         ]),
-
     ]),
     dbc.Row(id='mid-controls', children=[
         dbc.Col(id='mid-left', children=[
@@ -26,6 +41,7 @@ layout =  dbc.Container(fluid=False, children=[
                 value=uu,
                 multi=True,
                 clearable=False),]),]),
+
     dbc.Row(id='mid-time', className='p-4', children=[
         dbc.Label("Dates range"),
         dcc.RangeSlider(
@@ -41,8 +57,9 @@ layout =  dbc.Container(fluid=False, children=[
                                 'font_size': '3px',
                                 'text_align': 'center'
                                }} for t, d  in times.items()},),]),
-    dbc.Row(id='bottom-charts', children=[    
-        dbc.Col(id='generic-view-col', width=7, children=[dbc.Card([dcc.Graph(id='scatter-parties'),]),]),
-        # dbc.Col(id='details-view-col', width=5, children=[dbc.Card([dcc.Graph(id='users-at-party'),]),] ),
-    ]),
+
+    dbc.Tabs(children=[
+        dbc.Tab(tab_all_content, label="Everyone"),
+        dbc.Tab(tab_per_user_content, label="Just me"),
+        ]),
 ])
