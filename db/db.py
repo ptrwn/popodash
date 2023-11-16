@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Date, Boolean, DateTime, Float, Enum
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy.dialects.postgresql import ENUM
 
 
@@ -20,12 +20,32 @@ fake = Faker()
 
 Base = declarative_base()
 
+def revert(d):
+    '''Reverts a dictionary to 
+        {value1: [key1, key2, ...],
+        value2: [key1, key3, ...]}'''
+
+    rev = {}
+    for k in [*d]:
+        for v in d[k]:
+            if v not in [*rev]:
+                rev[v] = [k]
+            else:
+                rev[v].append(k)
+    return rev
+
+def df_to_sql(conn, df, table_name):
+    df.to_sql(table_name, con=conn, if_exists='append', index_label='id')
+
+
 class User(Base):
-    __tablename__ = "user"
+    __tablename__ = "user_"
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
     email = Column(String(255), nullable=True, unique=True)
     tg_username = Column(String(255), nullable=True, unique=True)
+    parties = relationship("Party", secondary="party_user_itemloc", back_populates="users")
+    itemlocs = relationship("ItemLocation", secondary="party_user_itemloc", back_populates="users")
 
 
 class Party(Base):
@@ -34,6 +54,8 @@ class Party(Base):
     name = Column(String(255))
     start_dt = Column(DateTime(), nullable=True, default=None)
     end_dt = Column(DateTime(), nullable=True, default=None)
+    users = relationship("User", secondary="party_user_itemloc", back_populates="parties")
+    itemlocs = relationship("ItemLocation",secondary="party_user_itemloc", back_populates="parties")
 
 
 class Location(Base):
@@ -41,8 +63,7 @@ class Location(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
     address = Column(String(255))
-
-
+    items = relationship("Item", secondary="item_location", back_populates="locations")
 
 
 class Item(Base):
@@ -52,6 +73,27 @@ class Item(Base):
     abv = Column(Float)
     drink_kinds = ('beer', 'wine', 'spirit', 'cocktail')
     kind = Column(Enum(*drink_kinds, name='drink_kinds_enum', create_type=False))
+    locations = relationship("Location", secondary="item_location", back_populates="items")
+
+
+class ItemLocation(Base):
+    __tablename__ = "item_location"
+    id = Column(Integer, primary_key=True)
+    item_id = Column(Integer, ForeignKey("item.id"), nullable=False)
+    location_id = Column(Integer, ForeignKey("location.id"), nullable=False)
+    volume = Column(Float)
+    price = Column(Float)
+    users = relationship("User", secondary="party_user_itemloc", back_populates="itemlocs")
+    parties = relationship("Party", secondary="party_user_itemloc", back_populates="itemlocs")
+
+
+class PartyUserItemloc(Base):
+    __tablename__ = "party_user_itemloc"
+    id = Column(Integer, primary_key=True)
+    party_id = Column(Integer, ForeignKey("party.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("user_.id"), nullable=False)
+    itemloc_id = Column(Integer, ForeignKey("item_location.id"), nullable=False)
+    order_dt = Column(DateTime(), nullable=True, default=None)
 
 
 
@@ -65,10 +107,64 @@ def main():
 
     Base.metadata.create_all(engine)
 
+    df_p = pd.read_csv('data/parties_dates.csv', parse_dates=['start_dt', 'end_dt'])
+    df_u = pd.DataFrame({'name': users})
+    df_i = pd.read_csv('data/drinks.csv', usecols=['name', 'abv', 'kind'])
+    df_l = pd.DataFrame({'name': [*locations_to_kinds]})
+
+    df = pd.read_csv('data/drinks_vol_price_excl.csv')
+    df_excl = df.loc[df.exclusive_in.notna()]
+
+    # TODO: add price fluctuations -- set coefficients for 'cheap'
+    # and 'expensive' places.
+    df_any = df.loc[~df.exclusive_in.notna()]
+    kinds_to_locations = revert(locations_to_kinds)
+    df_any['location'] = df_any.kind.apply(lambda x: choice(kinds_to_locations[x]))
+    df_any1 = pd.DataFrame.copy(df_any)
+    df_any1['location'] = df_any.kind.apply(lambda x: choice(kinds_to_locations[x]))
+    df_any = pd.concat([df_any, df_any1])
+    df_any = df_any.drop_duplicates()
+
+    with engine.begin() as conn:
+        withconn = partial(df_to_sql, conn)
+        for df, table_name in zip((df_p, df_u, df_i, df_l), ('party', 'user_', 'item', 'location')):
+            withconn(df, table_name)
+
+
+#     conn = create_connection()
+
+#     with conn:
+
+#         
+
+#         create_table(conn, SQL_stmt.create_table_party_user_itemloc)
+#         create_table(conn, SQL_stmt.create_table_item_location)
+
+#         itemloc_conn = partial(insert_item_loc, conn)
+#         party_user_conn = partial(insert_party_user_item_loc, conn)
+#         df_excl.apply(lambda x: itemloc_conn(x['name'], x['exclusive_in'], x['vol'], x['price']), axis=1)
+#         df_any.apply(lambda x: itemloc_conn(x['name'], x['location'], x['vol'], x['price']), axis=1)
+
+#         for party in df_p.itertuples():
+#             # the fewer places, the more probable
+#             how_many_locations = choices(list(range(1,MAX_LOC_PER_PARTY)), weights = list(range(MAX_LOC_PER_PARTY,1, -1)))[0]
+#             # the more users, the more probable
+#             how_many_users = choices(list(range(1, MAX_USERS_PER_PARTY)), weights = list(range(1, MAX_USERS_PER_PARTY)))[0]
+
+#             loc_ids = df_l.sample(how_many_locations).index.to_list()
+#             user_ids = df_u.sample(how_many_users).index.to_list()
+
+#             item_loc = pd.read_sql_query(f"select id from item_location where location_id in ({arger(loc_ids)});", conn)
+#             item_loc_user_dt = item_loc.sample(randint(2, min(MAX_ITEMS_USER_PARTY, item_loc.shape[0])))
+#             item_loc_user_dt['user_id'] = choices(user_ids, k=item_loc_user_dt.shape[0])
+#             rantimes = [fake.date_time_between(start_date=party.start_dt, end_date=party.end_dt, ) for _ in range(item_loc_user_dt.shape[0])]
+#             item_loc_user_dt['order_dt'] = list(pd.Series(rantimes).dt.strftime('%Y-%m-%d %H:%M:%S'))
+#             item_loc_user_dt.apply(lambda x: party_user_conn(party.Index, x['user_id'], x['id'], x['order_dt']), axis=1)
+
     
 
-    Session = sessionmaker(bind=engine)
-    sess = Session()
+    # Session = sessionmaker(bind=engine)
+    # sess = Session()
 
 
 if __name__ == '__main__':
@@ -78,19 +174,7 @@ if __name__ == '__main__':
 
 
 
-# def revert(d):
-#     '''Reverts a dictionary to 
-#         {value1: [key1, key2, ...],
-#         value2: [key1, key3, ...]}'''
 
-#     rev = {}
-#     for k in [*d]:
-#         for v in d[k]:
-#             if v not in [*rev]:
-#                 rev[v] = [k]
-#             else:
-#                 rev[v].append(k)
-#     return rev
 
 
 # def create_connection():
@@ -118,8 +202,7 @@ if __name__ == '__main__':
 #     return cur.lastrowid
 
 
-# def df_to_sql(conn, df, table_name):
-#     df.to_sql(table_name, con=conn, if_exists='replace', index_label='id')
+
 
 
 # def insert_item_loc(conn, name, location, vol, price):
