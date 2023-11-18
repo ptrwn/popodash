@@ -109,57 +109,57 @@ def main():
 
     df_p = pd.read_csv('data/parties_dates.csv', parse_dates=['start_dt', 'end_dt'])
     df_u = pd.DataFrame({'name': users})
-    df_i = pd.read_csv('data/drinks.csv', usecols=['name', 'abv', 'kind'])
+    df_i = pd.read_csv('data/drinks_vol_price_excl.csv')
     df_l = pd.DataFrame({'name': [*locations_to_kinds]})
 
-    df = pd.read_csv('data/drinks_vol_price_excl.csv')
-    df_excl = df.loc[df.exclusive_in.notna()]
+    with engine.begin() as conn:
+        withconn = partial(df_to_sql, conn)
+        for df, table_name in zip((df_p, df_u, df_i.loc[:, ['name', 'abv', 'kind']], df_l), ('party', 'user_', 'item', 'location')):
+            withconn(df, table_name)
 
-    # TODO: add price fluctuations -- set coefficients for 'cheap'
-    # and 'expensive' places.
-    df_any = df.loc[~df.exclusive_in.notna()]
+    df_excl = df_i.loc[df_i.exclusive_in.notna()]
+    df_excl['location'] = df_excl['exclusive_in'] 
+    df_any = df_i.loc[~df_i.exclusive_in.notna()]
+
     kinds_to_locations = revert(locations_to_kinds)
     df_any['location'] = df_any.kind.apply(lambda x: choice(kinds_to_locations[x]))
     df_any1 = pd.DataFrame.copy(df_any)
     df_any1['location'] = df_any.kind.apply(lambda x: choice(kinds_to_locations[x]))
-    df_any = pd.concat([df_any, df_any1])
+    df_any = pd.concat([df_any, df_any1], ignore_index=True)
     df_any = df_any.drop_duplicates()
 
+    df_itemloc = pd.concat([df_any, df_excl], ignore_index=True)
+    df_itemloc["location_id"] = df_itemloc["location"].apply(lambda x: df_l[df_l['name'] == x].index[0])
+    df_itemloc["item_id"] = df_itemloc["name"].apply(lambda x: df_i[df_i['name'] == x].index[0])
+    df_itemloc = df_itemloc.rename(columns={'vol': 'volume'})
+    df_itemloc = df_itemloc.loc[:, ["item_id", "location_id", "volume", "price"]]
+
     with engine.begin() as conn:
-        withconn = partial(df_to_sql, conn)
-        for df, table_name in zip((df_p, df_u, df_i, df_l), ('party', 'user_', 'item', 'location')):
-            withconn(df, table_name)
+        df_to_sql(conn, df_itemloc, "item_location")
+
+    
+
+    
 
 
-#     conn = create_connection()
 
-#     with conn:
 
-#         
 
-#         create_table(conn, SQL_stmt.create_table_party_user_itemloc)
-#         create_table(conn, SQL_stmt.create_table_item_location)
+    #     for party in df_p.itertuples():
+    #         # the fewer places, the more probable
+    #         how_many_locations = choices(list(range(1,MAX_LOC_PER_PARTY)), weights = list(range(MAX_LOC_PER_PARTY,1, -1)))[0]
+    #         # the more users, the more probable
+    #         how_many_users = choices(list(range(1, MAX_USERS_PER_PARTY)), weights = list(range(1, MAX_USERS_PER_PARTY)))[0]
 
-#         itemloc_conn = partial(insert_item_loc, conn)
-#         party_user_conn = partial(insert_party_user_item_loc, conn)
-#         df_excl.apply(lambda x: itemloc_conn(x['name'], x['exclusive_in'], x['vol'], x['price']), axis=1)
-#         df_any.apply(lambda x: itemloc_conn(x['name'], x['location'], x['vol'], x['price']), axis=1)
+    #         loc_ids = df_l.sample(how_many_locations).index.to_list()
+    #         user_ids = df_u.sample(how_many_users).index.to_list()
 
-#         for party in df_p.itertuples():
-#             # the fewer places, the more probable
-#             how_many_locations = choices(list(range(1,MAX_LOC_PER_PARTY)), weights = list(range(MAX_LOC_PER_PARTY,1, -1)))[0]
-#             # the more users, the more probable
-#             how_many_users = choices(list(range(1, MAX_USERS_PER_PARTY)), weights = list(range(1, MAX_USERS_PER_PARTY)))[0]
-
-#             loc_ids = df_l.sample(how_many_locations).index.to_list()
-#             user_ids = df_u.sample(how_many_users).index.to_list()
-
-#             item_loc = pd.read_sql_query(f"select id from item_location where location_id in ({arger(loc_ids)});", conn)
-#             item_loc_user_dt = item_loc.sample(randint(2, min(MAX_ITEMS_USER_PARTY, item_loc.shape[0])))
-#             item_loc_user_dt['user_id'] = choices(user_ids, k=item_loc_user_dt.shape[0])
-#             rantimes = [fake.date_time_between(start_date=party.start_dt, end_date=party.end_dt, ) for _ in range(item_loc_user_dt.shape[0])]
-#             item_loc_user_dt['order_dt'] = list(pd.Series(rantimes).dt.strftime('%Y-%m-%d %H:%M:%S'))
-#             item_loc_user_dt.apply(lambda x: party_user_conn(party.Index, x['user_id'], x['id'], x['order_dt']), axis=1)
+    #         item_loc = pd.read_sql_query(f"select id from item_location where location_id in ({arger(loc_ids)});", conn)
+    #         item_loc_user_dt = item_loc.sample(randint(2, min(MAX_ITEMS_USER_PARTY, item_loc.shape[0])))
+    #         item_loc_user_dt['user_id'] = choices(user_ids, k=item_loc_user_dt.shape[0])
+    #         rantimes = [fake.date_time_between(start_date=party.start_dt, end_date=party.end_dt, ) for _ in range(item_loc_user_dt.shape[0])]
+    #         item_loc_user_dt['order_dt'] = list(pd.Series(rantimes).dt.strftime('%Y-%m-%d %H:%M:%S'))
+    #         item_loc_user_dt.apply(lambda x: party_user_conn(party.Index, x['user_id'], x['id'], x['order_dt']), axis=1)
 
     
 
@@ -177,15 +177,6 @@ if __name__ == '__main__':
 
 
 
-# def create_connection():
-#     conn = None
-#     db_file =  Path().absolute() / Config.DB_FILE
-#     try:
-#         conn = sqlite3.connect(db_file)
-#     except Error as e:
-#         print(e)
-#     return conn
-
 
 # def create_table(conn, create_table_sql):
 #     try:
@@ -201,18 +192,6 @@ if __name__ == '__main__':
 #     conn.commit()
 #     return cur.lastrowid
 
-
-
-
-
-# def insert_item_loc(conn, name, location, vol, price):
-#     cur = conn.cursor()
-#     cur.execute(f"select id from location where name = '{location}';")
-#     loc_id = cur.fetchone()[0]
-#     cur.execute(f"select id from item where name = '{name}';")
-#     item_id = cur.fetchone()[0]
-#     cur.execute(SQL_stmt.insert_item_location, (item_id, loc_id, vol, price))
-#     conn.commit()
 
 
 # def arger(loc_ids):
