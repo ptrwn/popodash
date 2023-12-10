@@ -1,5 +1,5 @@
 MAX_USERS_PER_PARTY = 8
-MAX_LOC_PER_PARTY = 5
+MAX_LOC_PER_PARTY = 3
 MAX_ITEMS_USER_PARTY = 11
 
 # debug
@@ -8,7 +8,7 @@ MAX_ITEMS_USER_PARTY = 11
 # MAX_ITEMS_USER_PARTY = 3
 
 
-users = ("Carl", "Judy", "Bernard", "Tammy", "Kevin", "Andrea", "Bernard", "Danielle", "Ricky", "Holly", "Yusef", "Joanne", "Jerry", "Caroline", "Albert", "Fiona", "Robert", "Laura", "Owen", "Marie", "Reginald", "Elizabeth", "Jason", "Jennifer", "Ryan", "Cynthia", "Michael", "Kathleen", "Karl", "Megan", "Dennis", "Katie", "Douglas", "Susan", "Alexander", "Janet", "Conrad", "Denise", "Jack", "Janet", "Scott", "Stacy", "Kevin", "Isabelle", "Reginald", "Camilla", "Harry", "Lydia", "Clifford", "Kathleen")
+users = ('Danielle', 'Jason', 'Bernard', 'Michael', 'Kathleen', 'Camilla', 'Laura', 'Marie', 'Karl', 'Caroline', 'Albert', 'Jack', 'Stacy', 'Isabelle', 'Carl', 'Holly', 'Reginald', 'Kevin', 'Alexander', 'Owen', 'Elizabeth', 'Scott', 'Lydia', 'Fiona', 'Susan', 'Jerry', 'Ricky', 'Clifford', 'Dennis', 'Douglas', 'Andrea', 'Jennifer', 'Robert', 'Denise', 'Tammy', 'Cynthia', 'Harry', 'Conrad', 'Katie', 'Joanne', 'Judy', 'Ryan', 'Yusef', 'Janet', 'Megan')
 
 locations_to_kinds = {"joyce": ('beer', 'wine', 'spirit', 'cocktail'), "amster": ('beer', 
 'spirit', 'cocktail'), "ambar": ('beer', 'wine'), "touchdown": ('beer', 'cocktail', 'spirit'), "moretenders": ('cocktail', ), "clever": ('beer', 'spirit'), "galaktion": ('spirit', 'wine')}
