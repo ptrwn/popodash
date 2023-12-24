@@ -3,17 +3,25 @@ import plotly.express as px
 import pandas as pd
 import datetime, time
 
-import sqlite3
 from db.sql_statements import SQL_stmt
+from sqlalchemy import create_engine
+from sqlalchemy.sql import text
 
 from app import app
 
-conn = sqlite3.connect('popo.db') 
+try:
+    engine = create_engine("postgresql+psycopg2://popodash:123qwe@localhost/popodash")
+except Exception as e:
+    #TODO: replace with logger
+    print('Could not access postgres database', repr(e))
+
+with engine.connect() as conn:
+    df = pd.read_sql(text(SQL_stmt.select_whole_data), conn, parse_dates=['start_dt',	'end_dt'])
+
 
 # TODO: the df must not be global
 # either move to a func
 # or mabe a frontend state? 
-df = pd.read_sql(SQL_stmt.select_whole_data, conn, parse_dates=['start_dt',	'end_dt'])
 df['start_utime'] = df['start_dt'].apply(lambda x: int(time.mktime(x.timetuple())))
 pp = df.party_id.unique().tolist()
 uu = df.user_id.unique().tolist()
@@ -98,32 +106,5 @@ def update_figure_scatter(parties, users, dates):
     # figus.update(layout_showlegend=False)
     figus.update_coloraxes(showscale=False)
 
-
-
-
-
     return fig, figus, pp, [x['value'] for x in dp], uu, [x['value'] for x in du], [list(times.keys())[0], list(times.keys())[-1]]
 
-
-
-
-# @app.callback(
-#     Output('users-at-party', 'figure'),
-#     Input('scatter-parties', 'hoverData'),
-#     Input('scatter-parties', 'clickData'),
-#     )
-# def hover_click_from_scatter(hov, click):
-  
-
-#     print(hov)
-#     print('=========================================')
-#     print(click)
-
-
-
-#     # df = px.data.tips()
-#     fig = px.parallel_categories(df, dimensions=['sex', 'smoker', 'day'],
-#                     color="size", color_continuous_scale=px.colors.sequential.Inferno,
-#                     labels={'sex':'Payer sex', 'smoker':'Smokers at the table', 'day':'Day of week'})
-
-#     return fig

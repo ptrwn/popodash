@@ -58,7 +58,7 @@ class SQL_stmt():
                                 p.name as party_name, p.id as party_id, p.start_dt, p.end_dt, 
                                 l.id as location_id, l.name as location_name,
                                 il.volume, il.price, puil.order_dt 
-                            from user u 
+                            from user_ u 
                             inner join party_user_itemloc puil on u.id = puil.user_id 
                             left join item_location il on il.id = puil.itemloc_id  
                             left join party p on p.id = puil.party_id  
@@ -71,7 +71,7 @@ class SQL_stmt():
                                 p.name as party_name, p.id as party_id, p.start_dt, p.end_dt, 
                                 l.id as location_id, l.name as location_name,
                                 il.volume, il.price, puil.order_dt 
-                    from user u 
+                    from user_ u 
                     inner join party_user_itemloc puil on u.id = puil.user_id 
                     inner join item_location il on il.id = puil.itemloc_id  
                     inner join party p on p.id = puil.party_id  

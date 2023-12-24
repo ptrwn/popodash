@@ -90,7 +90,6 @@ class PartyUserItemloc(Base):
     order_dt = Column(DateTime(), nullable=True, default=None)
 
 
-
 def main():
 
     try:
